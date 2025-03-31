@@ -57,7 +57,7 @@ corporate_tax_rate = st.number_input("Corporate Tax Rate (in %)", value=25)
 personal_tax_rate = st.number_input("Personal Income Tax Rate (in %)", value=25)
 feie_limit = st.number_input("Foreign Earned Income Exclusion Limit (in USD)", value=120000)
 us_tax_rate = st.number_input("U.S. Marginal Tax Rate (in %)", value=24)
-usd_to_jmd = st.number_input("USD to JMD Exchange Rate", value=150.0)
+usd_to_jmd = st.number_input("USD to JMD Exchange Rate", value=156.0)
 
 # Calculations
 company_tax, dividend_tax, net_income_after_dividends = calculate_company_tax(jamaican_income, dividend_withholding_tax, corporate_tax_rate)
