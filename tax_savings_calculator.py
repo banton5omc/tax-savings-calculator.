@@ -34,6 +34,19 @@ def check_physical_presence_test(days_outside_us):
     return days_outside_us >= 330
 
 
+def calculate_salary_and_dividends(jamaican_income, salary_amount, paye_threshold, dividend_withholding_tax):
+    if salary_amount <= paye_threshold:
+        salary_tax = 0  # No PAYE applied if within threshold
+    else:
+        salary_tax = (salary_amount - paye_threshold) * (personal_tax_rate / 100)
+    net_salary_after_tax = salary_amount - salary_tax
+    dividend_amount = jamaican_income - salary_amount
+    dividend_tax = dividend_amount * (dividend_withholding_tax / 100)
+    net_dividends_after_tax = dividend_amount - dividend_tax
+    total_net_income = net_salary_after_tax + net_dividends_after_tax
+    return salary_tax, dividend_tax, total_net_income
+
+
 def export_to_excel(data):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -67,84 +80,37 @@ feie_limit = st.number_input("Foreign Earned Income Exclusion Limit (in USD)", v
 us_tax_rate = st.number_input("U.S. Marginal Tax Rate (in %)", value=24)
 usd_to_jmd = st.number_input("USD to JMD Exchange Rate", value=156.0)
 foreign_tax_paid = st.number_input("Enter total foreign taxes paid (in USD)", value=0.0)
+salary_amount = st.number_input("Enter Yearly Salary (in JMD)", value=0)
+paye_threshold = st.number_input("Enter PAYE Threshold (in JMD)", value=1500000)
 
 
-# Physical Presence Test Input
-st.header("Physical Presence Test")
-
-# Warning for U.S. Residents (Green Card Holders)
-st.info("""
-🚨 **Important Notice for U.S. Residents (Green Card Holders):**
-If you are a Green Card holder, spending more than **6 months** outside the U.S. may affect your residency status.
-- Being outside the U.S. for more than **1 year** without a **Re-entry Permit** may result in losing your Green Card.
-- The Physical Presence Test is mainly intended for **U.S. Citizens** or Green Card holders with a valid Re-entry Permit.
-
-Please ensure you comply with U.S. residency requirements if you intend to meet the Physical Presence Test.
-""")
-days_outside_us = st.number_input("Enter the total number of days you were outside the U.S. during a 12-month period", value=330)
-meets_physical_presence_test = check_physical_presence_test(days_outside_us)
-
-if meets_physical_presence_test:
-    st.write("✅ You meet the requirements for the Physical Presence Test. The FEIE will be applied.")
-else:
-    st.write("❌ You do not meet the requirements for the Physical Presence Test. The FEIE will NOT be applied.")
-    feie_limit = 0
+# Salary + Dividends Calculation
+salary_tax, dividend_tax, total_net_income = calculate_salary_and_dividends(jamaican_income, salary_amount, paye_threshold, dividend_withholding_tax)
 
 
-# Calculations
-company_tax, dividend_tax, net_income_after_dividends = calculate_company_tax(jamaican_income, dividend_withholding_tax, corporate_tax_rate)
-personal_tax, net_income_after_tax = calculate_sole_proprietor_tax(jamaican_income, personal_tax_rate)
-us_income_in_usd_sp = net_income_after_tax / usd_to_jmd
-us_income_in_usd_co = net_income_after_dividends / usd_to_jmd
-
-
-us_tax_sp, taxable_income_sp = calculate_us_tax(us_income_in_usd_sp, feie_limit, us_tax_rate)
-us_tax_co, taxable_income_co = calculate_us_tax(us_income_in_usd_co, feie_limit, us_tax_rate)
-
-
-ftc_sp = calculate_foreign_tax_credit(foreign_tax_paid, us_tax_sp)
-ftc_co = calculate_foreign_tax_credit(foreign_tax_paid, us_tax_co)
-
-
-net_us_tax_sp = us_tax_sp - ftc_sp
-net_us_tax_co = us_tax_co - ftc_co
-
-
-sole_proprietor_total_after_us_tax = us_income_in_usd_sp - net_us_tax_sp
-company_total_after_us_tax = us_income_in_usd_co - net_us_tax_co
+# Results DataFrame
+results_data = pd.DataFrame({
+    'Structure': ['Sole Proprietor', 'Company', 'Salary + Dividends'],
+    'Net Income After Tax (USD)': [sole_proprietor_total_after_us_tax, company_total_after_us_tax, total_net_income / usd_to_jmd]
+})
 
 
 st.header("Comparison of Net Income")
 fig, ax = plt.subplots()
-labels = ['Sole Proprietor', 'Company']
-income_values = [sole_proprietor_total_after_us_tax, company_total_after_us_tax]
+labels = ['Sole Proprietor', 'Company', 'Salary + Dividends']
+income_values = results_data['Net Income After Tax (USD)']
 
-ax.bar(labels, income_values, color=['blue', 'green'])
+ax.bar(labels, income_values, color=['blue', 'green', 'purple'])
 ax.set_ylabel('Net Income After Tax (USD)')
 ax.set_title('Net Income Comparison')
 st.pyplot(fig)
 
-
-results_data = pd.DataFrame({
-    'Structure': ['Sole Proprietor', 'Company'],
-    'Net Income After Tax (USD)': [sole_proprietor_total_after_us_tax, company_total_after_us_tax]
-})
 
 if st.button("Export to Excel"):
     excel_data = export_to_excel(results_data)
     st.download_button(label="Download Excel File", data=excel_data, file_name="tax_savings_results.xlsx")
 
 
-results_text = f"U.S. Tax Paid (Sole Proprietor): USD {us_tax_sp:.2f}\nForeign Tax Credit Applied (Sole Proprietor): USD {ftc_sp:.2f}\nNet U.S. Tax (Sole Proprietor): USD {net_us_tax_sp:.2f}\nNet Income After All Taxes (Sole Proprietor): USD {sole_proprietor_total_after_us_tax:.2f}\n\nU.S. Tax Paid (Company): USD {us_tax_co:.2f}\nForeign Tax Credit Applied (Company): USD {ftc_co:.2f}\nNet U.S. Tax (Company): USD {net_us_tax_co:.2f}\nNet Income After All Taxes (Company): USD {company_total_after_us_tax:.2f}"
-
-
 if st.button("Export to PDF"):
-    pdf_data = export_to_pdf(results_text)
+    pdf_data = export_to_pdf(results_data.to_string())
     st.download_button(label="Download PDF File", data=pdf_data, file_name="tax_savings_results.pdf", mime="application/pdf")
-
-
-st.header("Recommendations")
-if sole_proprietor_total_after_us_tax > company_total_after_us_tax:
-    st.write("Based on your inputs, operating as a **Sole Proprietor** is more tax-efficient.")
-else:
-    st.write("Based on your inputs, operating as a **Company** is more tax-efficient.")
