@@ -88,6 +88,10 @@ paye_threshold = st.number_input("Enter PAYE Threshold (in JMD)", value=1500000)
 salary_tax, dividend_tax, total_net_income = calculate_salary_and_dividends(jamaican_income, salary_amount, paye_threshold, dividend_withholding_tax)
 
 
+# Temporary Calculation of Sole Proprietor and Company Net Income
+sole_proprietor_total_after_us_tax = jamaican_income * (1 - personal_tax_rate / 100) / usd_to_jmd
+company_total_after_us_tax = jamaican_income * (1 - corporate_tax_rate / 100) * (1 - dividend_withholding_tax / 100) / usd_to_jmd
+
 # Results DataFrame
 results_data = pd.DataFrame({
     'Structure': ['Sole Proprietor', 'Company', 'Salary + Dividends'],
