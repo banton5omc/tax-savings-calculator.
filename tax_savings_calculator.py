@@ -39,9 +39,12 @@ def export_to_pdf(results_text):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(0, 10, results_text)
+
+    # Create a BytesIO object to store the PDF data
     pdf_data = BytesIO()
-    pdf.output(pdf_data)  # Write PDF content to the BytesIO object
-    pdf_data.seek(0)  # Reset the file pointer to the beginning
+    pdf.output(pdf_data, 'F')  # Save the PDF to the BytesIO object
+    pdf_data.seek(0)  # Move the cursor to the beginning of the BytesIO object
+
     return pdf_data
 
 
