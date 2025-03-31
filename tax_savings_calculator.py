@@ -28,20 +28,21 @@ def calculate_us_tax(income, feie_limit, us_tax_rate):
 
 def export_to_excel(data):
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    data.to_excel(writer, index=False, sheet_name='Tax Results')
-    writer.save()
-    return output.getvalue()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        data.to_excel(writer, index=False, sheet_name='Tax Results')
+    output.seek(0)  # Reset the file pointer to the beginning
+    return output
 
 
-def export_to_pdf(results):
+def export_to_pdf(results_text):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    pdf.multi_cell(0, 10, results)
-    output = BytesIO()
-    pdf.output(output)
-    return output.getvalue()
+    pdf.multi_cell(0, 10, results_text)
+    pdf_data = BytesIO()
+    pdf.output(pdf_data, dest='S')  # Write PDF content to BytesIO
+    pdf_data.seek(0)  # Reset the file pointer to the beginning
+    return pdf_data
 
 
 st.title("Tax Savings Calculator")
@@ -95,7 +96,7 @@ results_text = f"Corporate Tax Paid: JMD {company_tax:.2f}\nDividend Tax Paid: J
 
 if st.button("Export to PDF"):
     pdf_data = export_to_pdf(results_text)
-    st.download_button(label="Download PDF File", data=pdf_data, file_name="tax_savings_results.pdf")
+    st.download_button(label="Download PDF File", data=pdf_data, file_name="tax_savings_results.pdf", mime="application/pdf")
 
 # Recommendations
 st.header("Recommendations")
