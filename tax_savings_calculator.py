@@ -1,6 +1,9 @@
 import streamlit as st
 from matplotlib import pyplot as plt
 import numpy as np
+import pandas as pd
+from io import BytesIO
+from fpdf import FPDF
 
 
 def calculate_company_tax(jamaican_income, dividend_withholding_tax, corporate_tax_rate):
@@ -21,6 +24,24 @@ def calculate_us_tax(income, feie_limit, us_tax_rate):
     taxable_income = max(0, income - feie_limit)
     us_tax = taxable_income * (us_tax_rate / 100)
     return us_tax, taxable_income
+
+
+def export_to_excel(data):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    data.to_excel(writer, index=False, sheet_name='Tax Results')
+    writer.save()
+    return output.getvalue()
+
+
+def export_to_pdf(results):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, results)
+    output = BytesIO()
+    pdf.output(output)
+    return output.getvalue()
 
 
 st.title("Tax Savings Calculator")
@@ -57,16 +78,22 @@ ax.set_ylabel('Net Income After Tax (USD)')
 ax.set_title('Net Income Comparison')
 st.pyplot(fig)
 
-# Results
-st.header("Results")
-st.write(f"Corporate Tax Paid: JMD {company_tax:.2f}")
-st.write(f"Dividend Tax Paid: JMD {dividend_tax:.2f}")
-st.write(f"Net Income After Dividends: JMD {net_income_after_dividends:.2f}")
-st.write(f"Net Income After Dividends (USD): USD {company_total_after_us_tax:.2f}")
+# Results DataFrame
+results_data = pd.DataFrame({
+    'Structure': ['Sole Proprietor', 'Company'],
+    'Net Income After Tax (USD)': [sole_proprietor_total_after_us_tax, company_total_after_us_tax]
+})
 
-st.write(f"Personal Tax Paid: JMD {personal_tax:.2f}")
-st.write(f"Net Income After Tax: JMD {net_income_after_tax:.2f}")
-st.write(f"Net Income After Tax (USD): USD {sole_proprietor_total_after_us_tax:.2f}")
+# Export Options
+if st.button("Export to Excel"):
+    excel_data = export_to_excel(results_data)
+    st.download_button(label="Download Excel File", data=excel_data, file_name="tax_savings_results.xlsx")
+
+results_text = f"Corporate Tax Paid: JMD {company_tax:.2f}\nDividend Tax Paid: JMD {dividend_tax:.2f}\nNet Income After Dividends: JMD {net_income_after_dividends:.2f}\nNet Income After Dividends (USD): USD {company_total_after_us_tax:.2f}\n\nPersonal Tax Paid: JMD {personal_tax:.2f}\nNet Income After Tax: JMD {net_income_after_tax:.2f}\nNet Income After Tax (USD): USD {sole_proprietor_total_after_us_tax:.2f}"
+
+if st.button("Export to PDF"):
+    pdf_data = export_to_pdf(results_text)
+    st.download_button(label="Download PDF File", data=pdf_data, file_name="tax_savings_results.pdf")
 
 # Recommendations
 st.header("Recommendations")
