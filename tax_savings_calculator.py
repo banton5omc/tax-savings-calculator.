@@ -42,8 +42,9 @@ def export_to_pdf(results_text):
 
     # Create a BytesIO object to store the PDF data
     pdf_data = BytesIO()
-    pdf.output(pdf_data, 'F')  # Save the PDF to the BytesIO object
-    pdf_data.seek(0)  # Move the cursor to the beginning of the BytesIO object
+    pdf_output = pdf.output(dest='S').encode('latin1')  # Generate PDF content as bytes
+    pdf_data.write(pdf_output)  # Write bytes to BytesIO
+    pdf_data.seek(0)  # Reset file pointer to the beginning
 
     return pdf_data
 
