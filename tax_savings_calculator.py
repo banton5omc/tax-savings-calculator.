@@ -115,6 +115,15 @@ if st.button("Export to Excel"):
     st.download_button(label="Download Excel File", data=excel_data, file_name="tax_savings_results.xlsx")
 
 
+# Recommendation Logic
+st.header("Recommendations")
+if sole_proprietor_total_after_us_tax > company_total_after_us_tax and sole_proprietor_total_after_us_tax > (total_net_income / usd_to_jmd):
+    st.write("Based on your inputs, operating as a **Sole Proprietor** is more tax-efficient.")
+elif company_total_after_us_tax > sole_proprietor_total_after_us_tax and company_total_after_us_tax > (total_net_income / usd_to_jmd):
+    st.write("Based on your inputs, operating as a **Company** is more tax-efficient.")
+else:
+    st.write("Based on your inputs, operating with a **Salary + Dividends** strategy is more tax-efficient.")
+
 if st.button("Export to PDF"):
     pdf_data = export_to_pdf(results_data.to_string())
     st.download_button(label="Download PDF File", data=pdf_data, file_name="tax_savings_results.pdf", mime="application/pdf")
