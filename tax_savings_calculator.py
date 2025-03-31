@@ -58,14 +58,16 @@ usd_to_jmd = st.number_input("USD to JMD Exchange Rate", value=150.0)
 # Calculations
 company_tax, dividend_tax, net_income_after_dividends = calculate_company_tax(jamaican_income, dividend_withholding_tax, corporate_tax_rate)
 personal_tax, net_income_after_tax = calculate_sole_proprietor_tax(jamaican_income, personal_tax_rate)
-us_income_in_usd = jamaican_income / usd_to_jmd
-us_tax, taxable_income = calculate_us_tax(us_income_in_usd, feie_limit, us_tax_rate)
+us_income_in_usd_sp = net_income_after_tax / usd_to_jmd
+us_income_in_usd_co = net_income_after_dividends / usd_to_jmd
 
-# Comparison Calculation
-sole_proprietor_net_usd = net_income_after_tax / usd_to_jmd
-company_net_usd = net_income_after_dividends / usd_to_jmd
-sole_proprietor_total_after_us_tax = sole_proprietor_net_usd - us_tax
-company_total_after_us_tax = company_net_usd - us_tax
+# Apply FEIE and calculate U.S. taxes separately for each structure
+us_tax_sp, taxable_income_sp = calculate_us_tax(us_income_in_usd_sp, feie_limit, us_tax_rate)
+us_tax_co, taxable_income_co = calculate_us_tax(us_income_in_usd_co, feie_limit, us_tax_rate)
+
+# Net income after U.S. tax
+sole_proprietor_total_after_us_tax = us_income_in_usd_sp - us_tax_sp
+company_total_after_us_tax = us_income_in_usd_co - us_tax_co
 
 # Plotting
 st.header("Comparison of Net Income")
@@ -89,7 +91,7 @@ if st.button("Export to Excel"):
     excel_data = export_to_excel(results_data)
     st.download_button(label="Download Excel File", data=excel_data, file_name="tax_savings_results.xlsx")
 
-results_text = f"Corporate Tax Paid: JMD {company_tax:.2f}\nDividend Tax Paid: JMD {dividend_tax:.2f}\nNet Income After Dividends: JMD {net_income_after_dividends:.2f}\nNet Income After Dividends (USD): USD {company_total_after_us_tax:.2f}\n\nPersonal Tax Paid: JMD {personal_tax:.2f}\nNet Income After Tax: JMD {net_income_after_tax:.2f}\nNet Income After Tax (USD): USD {sole_proprietor_total_after_us_tax:.2f}"
+results_text = f"Corporate Tax Paid: JMD {company_tax:.2f}\nDividend Tax Paid: JMD {dividend_tax:.2f}\nNet Income After Dividends: JMD {net_income_after_dividends:.2f}\nNet Income After Dividends (USD): USD {us_income_in_usd_co:.2f} (Before U.S. Tax)\nU.S. Tax Paid (Company): USD {us_tax_co:.2f}\nNet Income After All Taxes (Company): USD {company_total_after_us_tax:.2f}\n\nPersonal Tax Paid: JMD {personal_tax:.2f}\nNet Income After Tax: JMD {net_income_after_tax:.2f}\nNet Income After Tax (USD): USD {us_income_in_usd_sp:.2f} (Before U.S. Tax)\nU.S. Tax Paid (Sole Proprietor): USD {us_tax_sp:.2f}\nNet Income After All Taxes (Sole Proprietor): USD {sole_proprietor_total_after_us_tax:.2f}"
 
 if st.button("Export to PDF"):
     pdf_data = export_to_pdf(results_text)
