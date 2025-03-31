@@ -40,7 +40,7 @@ def export_to_pdf(results_text):
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(0, 10, results_text)
     pdf_data = BytesIO()
-    pdf.output(pdf_data, dest='S')  # Write PDF content to BytesIO
+    pdf.output(pdf_data)  # Write PDF content to the BytesIO object
     pdf_data.seek(0)  # Reset the file pointer to the beginning
     return pdf_data
 
